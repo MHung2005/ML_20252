@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VinPredict — Dự Đoán Giá Rượu Vang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#f5efe6;--gold:#c9a84c;--gold-light:#e8c97a;--burgundy:#6b1a2a;--deep:#0d0a08;
+  --surface:#181210;--surface2:#221a15;--surface3:#2e221a;--border:#3a2a20;
+  --text:#e8ddd4;--muted:#8a7a6e;--accent:#d4846a;
+  --ff-display:'Cormorant Garamond',serif;--ff-body:'Outfit',sans-serif;--ff-mono:'DM Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--deep);color:var(--text);font-family:var(--ff-body);font-weight:300;line-height:1.7;overflow-x:hidden}
+
+/* ── scrollbar ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
+
+/* ── noise overlay ── */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.6}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.2rem 3rem;background:linear-gradient(to bottom,rgba(13,10,8,.95) 60%,transparent);border-bottom:1px solid rgba(201,168,76,.12);backdrop-filter:blur(6px)}
+.nav-logo{font-family:var(--ff-display);font-size:1.5rem;font-weight:300;letter-spacing:.08em;color:var(--gold);font-style:italic}
+.nav-logo span{font-style:normal;font-weight:600}
+.nav-links{display:flex;gap:2.5rem;list-style:none}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:.82rem;letter-spacing:.12em;text-transform:uppercase;transition:color .3s}
+.nav-links a:hover{color:var(--gold-light)}
+
+/* ── HERO ── */
+#hero{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:6rem 3rem 4rem}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(107,26,42,.18) 0%,transparent 70%),radial-gradient(ellipse 40% 50% at 80% 60%,rgba(201,168,76,.06) 0%,transparent 60%)}
+.hero-lines{position:absolute;inset:0;opacity:.06}
+.hero-lines::before{content:'';position:absolute;top:20%;left:-10%;width:120%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:lineSlide 8s ease-in-out infinite}
+.hero-lines::after{content:'';position:absolute;top:75%;left:-10%;width:120%;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:lineSlide 8s ease-in-out infinite 4s}
+@keyframes lineSlide{0%,100%{opacity:0;transform:scaleX(.3)}50%{opacity:1;transform:scaleX(1)}}
+.hero-content{position:relative;text-align:center;max-width:860px}
+.hero-tag{display:inline-block;font-family:var(--ff-mono);font-size:.7rem;letter-spacing:.2em;color:var(--gold);text-transform:uppercase;border:1px solid rgba(201,168,76,.3);padding:.35rem 1.2rem;border-radius:2px;margin-bottom:2rem;animation:fadeUp .8s ease both}
+.hero-title{font-family:var(--ff-display);font-size:clamp(3rem,8vw,6.5rem);font-weight:300;line-height:1.08;letter-spacing:-.01em;animation:fadeUp .8s .15s ease both;color:var(--cream)}
+.hero-title em{font-style:italic;color:var(--gold-light)}
+.hero-sub{font-size:1.05rem;color:var(--muted);max-width:540px;margin:1.8rem auto 0;font-weight:300;animation:fadeUp .8s .3s ease both;line-height:1.8}
+.hero-cta{display:flex;gap:1rem;justify-content:center;margin-top:3rem;animation:fadeUp .8s .45s ease both;flex-wrap:wrap}
+.btn-primary{background:var(--gold);color:var(--deep);padding:.85rem 2.2rem;border:none;font-family:var(--ff-body);font-size:.85rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .3s;text-decoration:none;display:inline-block}
+.btn-primary:hover{background:var(--gold-light);transform:translateY(-2px)}
+.btn-outline{background:transparent;color:var(--gold);padding:.85rem 2.2rem;border:1px solid rgba(201,168,76,.4);font-family:var(--ff-body);font-size:.85rem;font-weight:400;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .3s;text-decoration:none;display:inline-block}
+.btn-outline:hover{border-color:var(--gold);background:rgba(201,168,76,.06)}
+.hero-scroll{position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.5rem;animation:fadeUp .8s .6s ease both;opacity:.5}
+.hero-scroll span{font-family:var(--ff-mono);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.scroll-dot{width:1px;height:40px;background:linear-gradient(to bottom,var(--gold),transparent);animation:scrollPulse 2s ease-in-out infinite}
+@keyframes scrollPulse{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── STATS BAR ── */
+.stats-bar{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:2rem 0}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);max-width:900px;margin:0 auto;padding:0 2rem;gap:0}
+.stat-item{text-align:center;padding:0 1.5rem;position:relative}
+.stat-item+.stat-item::before{content:'';position:absolute;left:0;top:20%;height:60%;width:1px;background:var(--border)}
+.stat-num{font-family:var(--ff-display);font-size:2.4rem;font-weight:300;color:var(--gold);line-height:1}
+.stat-label{font-family:var(--ff-mono);font-size:.68rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:.4rem}
+
+/* ── SECTIONS ── */
+section{padding:6rem 3rem;position:relative}
+.section-header{text-align:center;margin-bottom:4rem}
+.section-tag{font-family:var(--ff-mono);font-size:.68rem;letter-spacing:.2em;color:var(--gold);text-transform:uppercase;display:block;margin-bottom:.8rem}
+.section-title{font-family:var(--ff-display);font-size:clamp(2rem,4vw,3.2rem);font-weight:300;color:var(--cream);line-height:1.2}
+.section-title em{font-style:italic;color:var(--gold-light)}
+.section-line{width:40px;height:1px;background:var(--gold);margin:1.2rem auto 0;opacity:.6}
+.container{max-width:1200px;margin:0 auto}
+
+/* ── PIPELINE ── */
+#pipeline{background:var(--surface)}
+.pipeline-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative}
+.pipeline-steps::before{content:'';position:absolute;top:2.8rem;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--border) 10%,var(--border) 90%,transparent);z-index:0}
+.step-card{text-align:center;padding:2rem 1rem;position:relative;z-index:1;cursor:default;transition:all .4s}
+.step-card:hover .step-icon{border-color:var(--gold);color:var(--gold);box-shadow:0 0 20px rgba(201,168,76,.15)}
+.step-num{font-family:var(--ff-mono);font-size:.6rem;color:var(--muted);letter-spacing:.15em;margin-bottom:.8rem;text-transform:uppercase}
+.step-icon{width:56px;height:56px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.4rem;color:var(--muted);transition:all .4s;background:var(--surface2)}
+.step-title{font-family:var(--ff-display);font-size:1.05rem;font-weight:400;color:var(--cream);margin-bottom:.5rem}
+.step-desc{font-size:.78rem;color:var(--muted);line-height:1.6}
+
+/* ── CHARTS SECTION ── */
+#charts{background:var(--deep)}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.chart-card{background:var(--surface);border:1px solid var(--border);padding:2rem;position:relative;overflow:hidden}
+.chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--burgundy),var(--gold))}
+.chart-card-wide{grid-column:1/-1}
+.chart-title{font-family:var(--ff-display);font-size:1.1rem;font-weight:400;color:var(--cream);margin-bottom:.3rem}
+.chart-subtitle{font-family:var(--ff-mono);font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1.5rem}
+.chart-wrap{position:relative;height:260px}
+.chart-wrap-sm{position:relative;height:220px}
+
+/* ── MODELS SECTION ── */
+#models{background:var(--surface)}
+.models-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:3rem}
+.model-card{background:var(--surface2);border:1px solid var(--border);padding:1.8rem 1.5rem;position:relative;transition:all .35s;cursor:default}
+.model-card:hover{border-color:rgba(201,168,76,.4);transform:translateY(-4px);background:var(--surface3)}
+.model-card.best{border-color:var(--gold);background:linear-gradient(135deg,var(--surface2) 80%,rgba(201,168,76,.06))}
+.model-card.best::after{content:'WINNER';position:absolute;top:.8rem;right:.8rem;font-family:var(--ff-mono);font-size:.55rem;letter-spacing:.15em;color:var(--gold);background:rgba(201,168,76,.12);padding:.2rem .6rem;border:1px solid rgba(201,168,76,.3)}
+.model-name{font-family:var(--ff-display);font-size:1.5rem;font-weight:300;color:var(--cream);margin-bottom:.2rem}
+.model-full{font-family:var(--ff-mono);font-size:.65rem;color:var(--muted);letter-spacing:.08em;margin-bottom:1.2rem;text-transform:uppercase}
+.model-metric{display:flex;justify-content:space-between;align-items:baseline;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.metric-label{font-size:.75rem;color:var(--muted)}
+.metric-val{font-family:var(--ff-mono);font-size:.85rem;color:var(--text)}
+.metric-val.highlight{color:var(--gold-light)}
+.model-bar{margin-top:1rem;height:3px;background:var(--border);border-radius:1px;overflow:hidden}
+.model-bar-fill{height:100%;background:linear-gradient(90deg,var(--burgundy),var(--gold));border-radius:1px;transition:width 1.2s ease}
+
+/* ── PREDICTOR ── */
+#predictor{background:linear-gradient(135deg,var(--deep) 0%,rgba(107,26,42,.08) 50%,var(--deep) 100%)}
+.predictor-wrap{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;max-width:1000px;margin:0 auto}
+.predictor-form{background:var(--surface);border:1px solid var(--border);padding:2.5rem}
+.form-title{font-family:var(--ff-display);font-size:1.4rem;font-weight:300;color:var(--cream);margin-bottom:.3rem}
+.form-subtitle{font-family:var(--ff-mono);font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2rem}
+.form-row{margin-bottom:1.2rem}
+.form-row label{display:block;font-family:var(--ff-mono);font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
+.form-row select,.form-row input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.7rem 1rem;font-family:var(--ff-body);font-size:.88rem;font-weight:300;outline:none;transition:border-color .3s;-webkit-appearance:none}
+.form-row select:focus,.form-row input:focus{border-color:rgba(201,168,76,.4)}
+.form-row select option{background:var(--surface2)}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.predict-btn{width:100%;background:var(--gold);color:var(--deep);border:none;padding:1rem;font-family:var(--ff-body);font-size:.85rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;margin-top:1.5rem;transition:all .3s;position:relative;overflow:hidden}
+.predict-btn:hover{background:var(--gold-light)}
+.predict-btn:active{transform:scale(.99)}
+.predictor-result{display:flex;flex-direction:column;gap:1.5rem}
+.result-main{background:var(--surface);border:1px solid var(--border);padding:2.5rem;text-align:center;position:relative;overflow:hidden}
+.result-main::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--burgundy),var(--gold))}
+.result-label{font-family:var(--ff-mono);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.8rem}
+.result-price{font-family:var(--ff-display);font-size:3rem;font-weight:300;color:var(--gold-light);line-height:1;transition:all .6s}
+.result-price.loading{opacity:.4;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.8}}
+.result-range{font-family:var(--ff-mono);font-size:.7rem;color:var(--muted);margin-top:.5rem}
+.result-model{font-family:var(--ff-mono);font-size:.65rem;color:var(--gold);letter-spacing:.1em;margin-top:.8rem}
+.result-neighbors{background:var(--surface);border:1px solid var(--border);padding:1.5rem}
+.neighbors-title{font-family:var(--ff-mono);font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem}
+.neighbor-item{display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.neighbor-item:last-child{border:none}
+.neighbor-name{font-size:.8rem;color:var(--text);max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.neighbor-price{font-family:var(--ff-mono);font-size:.8rem;color:var(--gold-light)}
+
+/* ── DATA TABLE ── */
+#data{background:var(--surface)}
+.table-controls{display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center}
+.search-box{flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.6rem 1rem;font-family:var(--ff-body);font-size:.85rem;outline:none}
+.search-box:focus{border-color:rgba(201,168,76,.4)}
+.filter-select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.6rem 1rem;font-family:var(--ff-body);font-size:.85rem;outline:none}
+.table-wrap{overflow-x:auto;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead tr{background:var(--surface2)}
+th{padding:.9rem 1rem;text-align:left;font-family:var(--ff-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;transition:color .3s}
+th:hover{color:var(--gold)}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .2s}
+tbody tr:hover{background:rgba(201,168,76,.04)}
+td{padding:.8rem 1rem;color:var(--text)}
+td.price-cell{font-family:var(--ff-mono);color:var(--gold-light);font-size:.82rem}
+td.rating-cell{color:var(--accent)}
+.wine-badge{display:inline-block;padding:.15rem .6rem;font-size:.65rem;letter-spacing:.06em;border-radius:1px}
+.badge-red{background:rgba(107,26,42,.4);color:#e8a0a0;border:1px solid rgba(107,26,42,.6)}
+.badge-white{background:rgba(180,160,80,.15);color:#e8d8a0;border:1px solid rgba(180,160,80,.3)}
+.badge-rose{background:rgba(180,80,100,.15);color:#e8b0b8;border:1px solid rgba(180,80,100,.3)}
+.badge-sparkling{background:rgba(80,140,180,.15);color:#a0c8e8;border:1px solid rgba(80,140,180,.3)}
+.table-pagination{display:flex;align-items:center;justify-content:space-between;padding:1rem 0;font-family:var(--ff-mono);font-size:.72rem;color:var(--muted)}
+.page-btns{display:flex;gap:.5rem}
+.page-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.4rem .8rem;cursor:pointer;font-family:var(--ff-mono);font-size:.72rem;transition:all .25s}
+.page-btn:hover,.page-btn.active{background:var(--gold);color:var(--deep);border-color:var(--gold)}
+
+/* ── FOOTER ── */
+footer{background:var(--surface);border-top:1px solid var(--border);padding:3rem;text-align:center}
+.footer-logo{font-family:var(--ff-display);font-size:2rem;font-weight:300;color:var(--gold);font-style:italic;margin-bottom:.8rem}
+.footer-text{font-family:var(--ff-mono);font-size:.68rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;line-height:2}
+
+/* ── REVEAL ── */
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .8s ease,transform .8s ease}
+.reveal.visible{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo"><em>Vin</em><span>Predict</span></div>
+  <ul class="nav-links">
+    <li><a href="#pipeline">Pipeline</a></li>
+    <li><a href="#charts">Dữ liệu</a></li>
+    <li><a href="#models">Mô hình</a></li>
+    <li><a href="#predictor">Dự đoán</a></li>
+    <li><a href="#data">Dataset</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-lines"></div>
+  <div class="hero-content">
+    <div class="hero-tag">Machine Learning · Regression · Wine Analytics</div>
+    <h1 class="hero-title">Dự đoán giá<br><em>rượu vang</em><br>bằng AI</h1>
+    <p class="hero-sub">Ứng dụng học máy (OLS, Ridge, LASSO, k-NN) để phân tích và dự đoán giá bán rượu vang trên thị trường Việt Nam.</p>
+    <div class="hero-cta">
+      <a href="#predictor" class="btn-primary">Thử dự đoán ngay</a>
+      <a href="#charts" class="btn-outline">Khám phá dữ liệu</a>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <span>Scroll</span>
+    <div class="scroll-dot"></div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stats-grid">
+    <div class="stat-item">
+      <div class="stat-num" id="s-total">189</div>
+      <div class="stat-label">Mẫu rượu vang</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="s-avg">1.53M</div>
+      <div class="stat-label">Giá trung bình</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="s-mae">810K</div>
+      <div class="stat-label">MAE tốt nhất</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">4</div>
+      <div class="stat-label">Mô hình ML</div>
+    </div>
+  </div>
+</div>
+
+<!-- PIPELINE -->
+<section id="pipeline">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Quy trình</span>
+      <h2 class="section-title">ML <em>Pipeline</em></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="pipeline-steps reveal">
+      <div class="step-card">
+        <div class="step-num">Bước 01</div>
+        <div class="step-icon">🕸️</div>
+        <div class="step-title">Thu thập</div>
+        <div class="step-desc">Crawl dữ liệu từ winecellar.vn — tên, loại nho, xuất xứ, giá…</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">Bước 02</div>
+        <div class="step-icon">🧹</div>
+        <div class="step-title">Làm sạch</div>
+        <div class="step-desc">Xử lý missing values, outlier bằng IQR×3, chuẩn hoá đơn vị</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">Bước 03</div>
+        <div class="step-icon">🔬</div>
+        <div class="step-title">EDA</div>
+        <div class="step-desc">Phân phối giá, ma trận tương quan, phân tích theo loại & vùng</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">Bước 04</div>
+        <div class="step-icon">🤖</div>
+        <div class="step-title">Mô hình</div>
+        <div class="step-desc">Huấn luyện OLS, Ridge, LASSO và k-NN với GridSearch hyperparameter</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">Bước 05</div>
+        <div class="step-icon">📊</div>
+        <div class="step-title">Đánh giá</div>
+        <div class="step-desc">Hold-out + 5-fold CV, so sánh MAE/RMSE/R² chọn mô hình tốt nhất</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHARTS -->
+<section id="charts">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Khám phá dữ liệu</span>
+      <h2 class="section-title">Phân tích <em>EDA</em></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="charts-grid reveal">
+      <div class="chart-card">
+        <div class="chart-title">Phân phối giá bán</div>
+        <div class="chart-subtitle">Theo khoảng giá · 189 mẫu</div>
+        <div class="chart-wrap"><canvas id="chartPriceHist"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Giá trung bình theo loại rượu</div>
+        <div class="chart-subtitle">Vang đỏ · Trắng · Hồng · Sủi</div>
+        <div class="chart-wrap"><canvas id="chartByType"></canvas></div>
+      </div>
+      <div class="chart-card chart-card-wide">
+        <div class="chart-title">Top 10 thương hiệu theo giá trung bình</div>
+        <div class="chart-subtitle">Sắp xếp giảm dần · triệu VNĐ</div>
+        <div class="chart-wrap"><canvas id="chartByBrand"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Số lượng mẫu theo quốc gia</div>
+        <div class="chart-subtitle">Top 8 quốc gia xuất xứ</div>
+        <div class="chart-wrap-sm"><canvas id="chartByCountry"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">So sánh MAE – 5-fold Cross-Validation</div>
+        <div class="chart-subtitle">Trung bình ± độ lệch chuẩn · triệu VNĐ</div>
+        <div class="chart-wrap-sm"><canvas id="chartCV"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODELS -->
+<section id="models">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">So sánh mô hình</span>
+      <h2 class="section-title">Kết quả <em>ML</em></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="models-grid reveal">
+      <div class="model-card">
+        <div class="model-name">OLS</div>
+        <div class="model-full">Ordinary Least Squares</div>
+        <div class="model-metric"><span class="metric-label">MAE</span><span class="metric-val">976K ₫</span></div>
+        <div class="model-metric"><span class="metric-label">RMSE</span><span class="metric-val">1.272M ₫</span></div>
+        <div class="model-metric"><span class="metric-label">R²</span><span class="metric-val">-0.001</span></div>
+        <div class="model-metric"><span class="metric-label">Phạt</span><span class="metric-val">Không</span></div>
+        <div class="model-bar"><div class="model-bar-fill" style="width:66%"></div></div>
+      </div>
+      <div class="model-card">
+        <div class="model-name">Ridge</div>
+        <div class="model-full">L2 Regularization · λ=10</div>
+        <div class="model-metric"><span class="metric-label">MAE</span><span class="metric-val">965K ₫</span></div>
+        <div class="model-metric"><span class="metric-label">RMSE</span><span class="metric-val">1.265M ₫</span></div>
+        <div class="model-metric"><span class="metric-label">R²</span><span class="metric-val">0.011</span></div>
+        <div class="model-metric"><span class="metric-label">λ tốt nhất</span><span class="metric-val">10</span></div>
+        <div class="model-bar"><div class="model-bar-fill" style="width:73%"></div></div>
+      </div>
+      <div class="model-card">
+        <div class="model-name">LASSO</div>
+        <div class="model-full">L1 Regularization · λ=1</div>
+        <div class="model-metric"><span class="metric-label">MAE</span><span class="metric-val">976K ₫</span></div>
+        <div class="model-metric"><span class="metric-label">RMSE</span><span class="metric-val">1.272M ₫</span></div>
+        <div class="model-metric"><span class="metric-label">R²</span><span class="metric-val">-0.001</span></div>
+        <div class="model-metric"><span class="metric-label">λ tốt nhất</span><span class="metric-val">1</span></div>
+        <div class="model-bar"><div class="model-bar-fill" style="width:66%"></div></div>
+      </div>
+      <div class="model-card best">
+        <div class="model-name">k-NN</div>
+        <div class="model-full">k-Nearest Neighbors · k=2</div>
+        <div class="model-metric"><span class="metric-label">MAE</span><span class="metric-val highlight">810K ₫</span></div>
+        <div class="model-metric"><span class="metric-label">RMSE</span><span class="metric-val">1.268M ₫</span></div>
+        <div class="model-metric"><span class="metric-label">R²</span><span class="metric-val">0.006</span></div>
+        <div class="model-metric"><span class="metric-label">k tốt nhất</span><span class="metric-val highlight">2</span></div>
+        <div class="model-bar"><div class="model-bar-fill" style="width:100%"></div></div>
+      </div>
+    </div>
+    <div class="chart-card reveal" style="max-width:700px;margin:0 auto">
+      <div class="chart-title">MAE trên tập Test – So sánh mô hình</div>
+      <div class="chart-subtitle">Đơn vị: nghìn đồng VNĐ · Thấp hơn = tốt hơn</div>
+      <div class="chart-wrap-sm"><canvas id="chartModelComp"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- PREDICTOR -->
+<section id="predictor">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Thử nghiệm</span>
+      <h2 class="section-title">Dự đoán <em>giá</em></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="predictor-wrap reveal">
+      <div class="predictor-form">
+        <div class="form-title">Nhập thông số chai rượu</div>
+        <div class="form-subtitle">Sử dụng mô hình k-NN (MAE tốt nhất)</div>
+        <div class="form-row">
+          <label>Loại rượu</label>
+          <select id="f-type">
+            <option value="Vang Đỏ">Vang Đỏ</option>
+            <option value="Vang Trắng">Vang Trắng</option>
+            <option value="Vang Hồng">Vang Hồng</option>
+            <option value="Vang Sủi">Vang Sủi</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Thương hiệu</label>
+          <select id="f-brand">
+            <option>Château Margaux</option><option>Antinori</option><option>Penfolds</option>
+            <option>Robert Mondavi</option><option>Torres</option><option>Masi</option>
+            <option>Cloudy Bay</option><option>Wolf Blass</option><option>Concha y Toro</option><option>Gallo</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Giống nho</label>
+          <select id="f-grape">
+            <option>Cabernet Sauvignon</option><option>Merlot</option><option>Chardonnay</option>
+            <option>Sauvignon Blanc</option><option>Pinot Noir</option><option>Syrah</option>
+            <option>Malbec</option><option>Riesling</option><option>Grenache</option><option>Tempranillo</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Quốc gia</label>
+          <select id="f-country">
+            <option>Pháp</option><option>Ý</option><option>Chile</option><option>Mỹ</option>
+            <option>Úc</option><option>Tây Ban Nha</option><option>Argentina</option><option>New Zealand</option>
+          </select>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label>Năm sản xuất</label>
+            <input type="number" id="f-vintage" value="2018" min="2010" max="2023">
+          </div>
+          <div class="form-row">
+            <label>Nồng độ cồn (%)</label>
+            <input type="number" id="f-alcohol" value="13.5" min="10" max="16" step="0.5">
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label>Dung tích (ml)</label>
+            <select id="f-volume">
+              <option value="375">375 ml</option>
+              <option value="750" selected>750 ml</option>
+              <option value="1500">1500 ml</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Điểm đánh giá</label>
+            <input type="number" id="f-rating" value="4.2" min="1" max="5" step="0.1">
+          </div>
+        </div>
+        <button class="predict-btn" id="predict-btn" onclick="runPredict()">
+          ✦ Dự đoán giá
+        </button>
+      </div>
+
+      <div class="predictor-result">
+        <div class="result-main">
+          <div class="result-label">Giá dự đoán (k-NN)</div>
+          <div class="result-price" id="result-price">— ₫</div>
+          <div class="result-range" id="result-range">Điền form và nhấn Dự đoán</div>
+          <div class="result-model" id="result-model"></div>
+        </div>
+        <div class="result-neighbors">
+          <div class="neighbors-title">⚬ Láng giềng gần nhất (k=2)</div>
+          <div id="neighbors-list">
+            <div style="color:var(--muted);font-size:.8rem;padding:1rem 0;text-align:center">Chưa có kết quả</div>
+          </div>
+        </div>
+        <div class="result-main" style="padding:1.5rem">
+          <div class="result-label" style="margin-bottom:.6rem">Giá theo khoảng</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem" id="range-breakdown">
+            <div style="color:var(--muted);font-size:.78rem;grid-column:1/-1;text-align:center">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DATA TABLE -->
+<section id="data">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Dữ liệu</span>
+      <h2 class="section-title">Wine <em>Dataset</em></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="reveal">
+      <div class="table-controls">
+        <input class="search-box" id="tbl-search" placeholder="Tìm kiếm tên, thương hiệu, xuất xứ…" oninput="renderTable()">
+        <select class="filter-select" id="tbl-type" onchange="renderTable()">
+          <option value="">Tất cả loại</option>
+          <option>Vang Đỏ</option><option>Vang Trắng</option><option>Vang Hồng</option><option>Vang Sủi</option>
+        </select>
+        <select class="filter-select" id="tbl-sort" onchange="renderTable()">
+          <option value="price_desc">Giá ↓</option>
+          <option value="price_asc">Giá ↑</option>
+          <option value="rating_desc">Điểm ↓</option>
+          <option value="vintage_desc">Năm ↓</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tên sản phẩm</th>
+              <th>Loại</th>
+              <th>Thương hiệu</th>
+              <th>Xuất xứ</th>
+              <th>Giống nho</th>
+              <th>Năm</th>
+              <th>Cồn%</th>
+              <th>Điểm</th>
+              <th>Giá VNĐ</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+      <div class="table-pagination">
+        <span id="tbl-info">—</span>
+        <div class="page-btns" id="tbl-pages"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">VinPredict</div>
+  <div class="footer-text">
+    Đồ án học máy · Hồi quy giá rượu vang<br>
+    OLS · Ridge · LASSO · k-NN · Python · Scikit-learn
+  </div>
+</footer>
+
+<script>
+// ════════════════════════════════
+// DATA
+// ════════════════════════════════
+const DATA = {"records":[{"product_name":"Masi Pinot Noir 2011","wine_type":"Vang Trắng","grape_variety":"Pinot Noir","origin_country":"Tây Ban Nha","region":"Barossa Valley","vintage":2011,"volume":1500.0,"brand":"Masi","rating_score":4.6,"price_vnd":2287000,"alcohol_pct":11.9},{"product_name":"Cloudy Bay Syrah 2022","wine_type":"Vang Đỏ","grape_variety":"Syrah","origin_country":"Tây Ban Nha","region":"Napa Valley","vintage":2022,"volume":750.0,"brand":"Cloudy Bay","rating_score":3.6,"price_vnd":1029000,"alcohol_pct":14.1},{"product_name":"Wolf Blass Grenache 2012","wine_type":"Vang Đỏ","grape_variety":"Grenache","origin_country":"Argentina","region":"Mendoza","vintage":2012,"volume":1500.0,"brand":"Wolf Blass","rating_score":4.6,"price_vnd":1138000,"alcohol_pct":12.9},{"product_name":"Torres Pinot Noir 2012","wine_type":"Vang Đỏ","grape_variety":"Pinot Noir","origin_country":"Argentina","region":"Bordeaux","vintage":2012,"volume":750.0,"brand":"Torres","rating_score":3.8,"price_vnd":1196000,"alcohol_pct":14.2},{"product_name":"Cloudy Bay Merlot 2018","wine_type":"Vang Đỏ","grape_variety":"Merlot","origin_country":"Argentina","region":"Barossa Valley","vintage":2018,"volume":750.0,"brand":"Cloudy Bay","rating_score":4.7,"price_vnd":1134000,"alcohol_pct":12.4},{"product_name":"Robert Mondavi Riesling 2020","wine_type":"Vang Đỏ","grape_variety":"Riesling","origin_country":"Mỹ","region":"Rhône","vintage":2020,"volume":750.0,"brand":"Robert Mondavi","rating_score":3.5,"price_vnd":1548000,"alcohol_pct":13.0},{"product_name":"Wolf Blass Riesling 2016","wine_type":"Vang Đỏ","grape_variety":"Riesling","origin_country":"Argentina","region":"Marlborough","vintage":2016,"volume":750.0,"brand":"Wolf Blass","rating_score":3.5,"price_vnd":554000,"alcohol_pct":14.6},{"product_name":"Masi Malbec 2017","wine_type":"Vang Trắng","grape_variety":"Malbec","origin_country":"Tây Ban Nha","region":"Barossa Valley","vintage":2017,"volume":750.0,"brand":"Masi","rating_score":4.2,"price_vnd":1415000,"alcohol_pct":14.6},{"product_name":"Penfolds Pinot Noir 2013","wine_type":"Vang Đỏ","grape_variety":"Pinot Noir","origin_country":"Chile","region":"Chianti","vintage":2013,"volume":750.0,"brand":"Penfolds","rating_score":3.9,"price_vnd":1891000,"alcohol_pct":14.9},{"product_name":"Concha y Toro Riesling 2021","wine_type":"Vang Đỏ","grape_variety":"Riesling","origin_country":"New Zealand","region":"Napa Valley","vintage":2021,"volume":750.0,"brand":"Concha y Toro","rating_score":4.4,"price_vnd":381000,"alcohol_pct":14.3},{"product_name":"Antinori Grenache 2019","wine_type":"Vang Đỏ","grape_variety":"Grenache","origin_country":"Ý","region":"Rhône","vintage":2019,"volume":750.0,"brand":"Antinori","rating_score":3.3,"price_vnd":2262000,"alcohol_pct":14.6},{"product_name":"Robert Mondavi Merlot 2010","wine_type":"Vang Đỏ","grape_variety":"Merlot","origin_country":"Argentina","region":"Mendoza","vintage":2010,"volume":750.0,"brand":"Robert Mondavi","rating_score":4.4,"price_vnd":1768000,"alcohol_pct":11.9},{"product_name":"Masi Syrah 2014","wine_type":"Vang Sủi","grape_variety":"Syrah","origin_country":"Pháp","region":"Rioja","vintage":2014,"volume":750.0,"brand":"Masi","rating_score":4.2,"price_vnd":1597000,"alcohol_pct":11.7},{"product_name":"Wolf Blass Tempranillo 2019","wine_type":"Vang Hồng","grape_variety":"Tempranillo","origin_country":"New Zealand","region":"Rhône","vintage":2019,"volume":750.0,"brand":"Wolf Blass","rating_score":4.8,"price_vnd":704000,"alcohol_pct":14.8},{"product_name":"Penfolds Syrah 2020","wine_type":"Vang Đỏ","grape_variety":"Syrah","origin_country":"Chile","region":"Napa Valley","vintage":2020,"volume":750.0,"brand":"Penfolds","rating_score":4.5,"price_vnd":1998000,"alcohol_pct":14.5},{"product_name":"Château Margaux Tempranillo 2017","wine_type":"Vang Đỏ","grape_variety":"Tempranillo","origin_country":"Tây Ban Nha","region":"Rhône","vintage":2017,"volume":750.0,"brand":"Château Margaux","rating_score":3.7,"price_vnd":6218000,"alcohol_pct":14.8},{"product_name":"Antinori Cabernet Sauvignon 2016","wine_type":"Vang Hồng","grape_variety":"Cabernet Sauvignon","origin_country":"Mỹ","region":"Barossa Valley","vintage":2016,"volume":750.0,"brand":"Antinori","rating_score":4.0,"price_vnd":3524000,"alcohol_pct":14.8},{"product_name":"Gallo Chardonnay 2016","wine_type":"Vang Đỏ","grape_variety":"Chardonnay","origin_country":"Pháp","region":"Chianti","vintage":2016,"volume":750.0,"brand":"Gallo","rating_score":4.2,"price_vnd":311000,"alcohol_pct":12.6},{"product_name":"Wolf Blass Merlot 2021","wine_type":"Vang Đỏ","grape_variety":"Merlot","origin_country":"Chile","region":"Napa Valley","vintage":2021,"volume":750.0,"brand":"Wolf Blass","rating_score":4.8,"price_vnd":869000,"alcohol_pct":13.5},{"product_name":"Gallo Cabernet Sauvignon 2010","wine_type":"Vang Đỏ","grape_variety":"Cabernet Sauvignon","origin_country":"New Zealand","region":"Rioja","vintage":2010,"volume":750.0,"brand":"Gallo","rating_score":4.1,"price_vnd":421000,"alcohol_pct":13.6},{"product_name":"Torres Grenache 2012","wine_type":"Vang Đỏ","grape_variety":"Grenache","origin_country":"Úc","region":"Barossa Valley","vintage":2012,"volume":750.0,"brand":"Torres","rating_score":4.5,"price_vnd":897000,"alcohol_pct":11.9},{"product_name":"Torres Chardonnay 2021","wine_type":"Vang Trắng","grape_variety":"Chardonnay","origin_country":"Mỹ","region":"Napa Valley","vintage":2021,"volume":750.0,"brand":"Torres","rating_score":4.7,"price_vnd":1270000,"alcohol_pct":11.8},{"product_name":"Antinori Tempranillo 2011","wine_type":"Vang Đỏ","grape_variety":"Tempranillo","origin_country":"Argentina","region":"Rhône","vintage":2011,"volume":750.0,"brand":"Antinori","rating_score":3.3,"price_vnd":2813000,"alcohol_pct":13.4},{"product_name":"Antinori Riesling 2020","wine_type":"Vang Đỏ","grape_variety":"Riesling","origin_country":"Ý","region":"Barossa Valley","vintage":2020,"volume":1500.0,"brand":"Antinori","rating_score":4.8,"price_vnd":6183000,"alcohol_pct":13.5},{"product_name":"Wolf Blass Chardonnay 2012","wine_type":"Vang Trắng","grape_variety":"Chardonnay","origin_country":"Chile","region":"Bordeaux","vintage":2012,"volume":750.0,"brand":"Wolf Blass","rating_score":4.5,"price_vnd":786000,"alcohol_pct":13.3},{"product_name":"Torres Pinot Noir 2015","wine_type":"Vang Đỏ","grape_variety":"Pinot Noir","origin_country":"New Zealand","region":"Napa Valley","vintage":2015,"volume":375.0,"brand":"Torres","rating_score":3.7,"price_vnd":487000,"alcohol_pct":14.0},{"product_name":"Concha y Toro Grenache 2022","wine_type":"Vang Đỏ","grape_variety":"Grenache","origin_country":"New Zealand","region":"Rioja","vintage":2022,"volume":750.0,"brand":"Concha y Toro","rating_score":3.4,"price_vnd":471000,"alcohol_pct":13.2},{"product_name":"Robert Mondavi Pinot Noir 2017","wine_type":"Vang Hồng","grape_variety":"Pinot Noir","origin_country":"Mỹ","region":"Marlborough","vintage":2017,"volume":750.0,"brand":"Robert Mondavi","rating_score":4.1,"price_vnd":1782000,"alcohol_pct":11.8},{"product_name":"Gallo Pinot Noir 2019","wine_type":"Vang Trắng","grape_variety":"Pinot Noir","origin_country":"Ý","region":"Rhône","vintage":2019,"volume":750.0,"brand":"Gallo","rating_score":3.9,"price_vnd":420000,"alcohol_pct":14.5},{"product_name":"Torres Tempranillo 2010","wine_type":"Vang Đỏ","grape_variety":"Tempranillo","origin_country":"Argentina","region":"Barossa Valley","vintage":2010,"volume":750.0,"brand":"Torres","rating_score":4.3,"price_vnd":887000,"alcohol_pct":13.9}],"by_type":[{"type":"Vang Hồng","avg_price":1897058.82,"count":17},{"type":"Vang Sủi","avg_price":1361533.33,"count":15},{"type":"Vang Trắng","avg_price":1608458.33,"count":48},{"type":"Vang Đỏ","avg_price":1456155.96,"count":109}],"by_brand":[{"brand":"Château Margaux","avg_price":6011142.86},{"brand":"Antinori","avg_price":3032473.68},{"brand":"Penfolds","avg_price":2586055.56},{"brand":"Robert Mondavi","avg_price":1823125.0},{"brand":"Masi","avg_price":1540352.94},{"brand":"Torres","avg_price":1155210.53},{"brand":"Cloudy Bay","avg_price":964590.91},{"brand":"Wolf Blass","avg_price":775652.17},{"brand":"Concha y Toro","avg_price":401470.59},{"brand":"Gallo","avg_price":376250.0}],"by_country":[{"country":"Tây Ban Nha","avg_price":1591666.67,"count":30},{"country":"Argentina","avg_price":1160952.38,"count":21},{"country":"Ý","avg_price":1860125.0,"count":16},{"country":"Chile","avg_price":1497642.86,"count":14},{"country":"New Zealand","avg_price":861384.62,"count":13},{"country":"Mỹ","avg_price":1803571.43,"count":14},{"country":"Pháp","avg_price":2065250.0,"count":12},{"country":"Úc","avg_price":1325071.43,"count":14}],"price_hist":[{"range":"<500K","count":40},{"range":"500K-1M","count":47},{"range":"1M-2M","count":53},{"range":"2M-3M","count":26},{"range":"3M-5M","count":18},{"range":">5M","count":5}],"stats":{"total":189,"avg_price":1526984.13,"max_price":7333000.0,"min_price":151000.0,"avg_rating":4.09}};
+
+const fmtVND = v => new Intl.NumberFormat('vi-VN').format(Math.round(v)) + ' ₫';
+const fmtM   = v => (v/1e6).toFixed(2) + 'M';
+
+// Chart.js global defaults — dark theme
+Chart.defaults.color = '#8a7a6e';
+Chart.defaults.borderColor = 'rgba(58,42,32,0.6)';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const GOLD = '#c9a84c'; const GOLD2 = '#e8c97a'; const BURG = '#6b1a2a';
+const CORAL = '#d4846a'; const SURF = '#221a15';
+
+function mkChart(id, cfg) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx, cfg);
+}
+
+// ── Price histogram
+mkChart('chartPriceHist', {
+  type: 'bar',
+  data: {
+    labels: DATA.price_hist.map(d => d.range),
+    datasets: [{
+      data: DATA.price_hist.map(d => d.count),
+      backgroundColor: DATA.price_hist.map((_, i) => i === 2 ? GOLD : 'rgba(201,168,76,0.25)'),
+      borderColor: 'transparent', borderRadius: 2,
+    }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+    scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(58,42,32,0.4)' } } }
+  }
+});
+
+// ── By type
+mkChart('chartByType', {
+  type: 'doughnut',
+  data: {
+    labels: DATA.by_type.map(d => d.type),
+    datasets: [{
+      data: DATA.by_type.map(d => d.avg_price / 1e6),
+      backgroundColor: [BURG, GOLD, CORAL, '#378a5a'],
+      borderColor: SURF, borderWidth: 3,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { padding: 16, boxWidth: 12 } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw.toFixed(2)}M ₫` } }
+    }
+  }
+});
+
+// ── By brand
+mkChart('chartByBrand', {
+  type: 'bar',
+  data: {
+    labels: DATA.by_brand.map(d => d.brand),
+    datasets: [{
+      data: DATA.by_brand.map(d => d.avg_price / 1e6),
+      backgroundColor: ctx => {
+        const g = ctx.chart.ctx.createLinearGradient(0,0,0,200);
+        g.addColorStop(0, GOLD); g.addColorStop(1, BURG); return g;
+      },
+      borderColor: 'transparent', borderRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${fmtM(ctx.raw * 1e6)}` } }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: 'rgba(58,42,32,0.4)' }, ticks: { callback: v => v + 'M' } }
+    }
+  }
+});
+
+// ── By country
+mkChart('chartByCountry', {
+  type: 'bar',
+  data: {
+    labels: DATA.by_country.map(d => d.country),
+    datasets: [{
+      label: 'Số mẫu', data: DATA.by_country.map(d => d.count),
+      backgroundColor: 'rgba(201,168,76,0.3)', borderColor: GOLD, borderWidth: 1, borderRadius: 2,
+    }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: { x: { grid: { color: 'rgba(58,42,32,0.4)' } }, y: { grid: { display: false } } }
+  }
+});
+
+// ── CV comparison
+const cvData = { OLS: 0.991, Ridge: 0.981, LASSO: 0.991, 'k-NN': 0.953 };
+const cvStd  = { OLS: 0.167, Ridge: 0.166, LASSO: 0.167, 'k-NN': 0.231 };
+mkChart('chartCV', {
+  type: 'bar',
+  data: {
+    labels: Object.keys(cvData),
+    datasets: [{
+      label: 'CV MAE (M₫)',
+      data: Object.values(cvData),
+      backgroundColor: ['rgba(201,168,76,.25)','rgba(201,168,76,.25)','rgba(201,168,76,.25)','rgba(201,168,76,.8)'],
+      borderColor: [GOLD,GOLD,GOLD,GOLD2], borderWidth: 1, borderRadius: 2,
+      errorBars: Object.values(cvStd),
+    }]
+  },
+  options: { responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: 'rgba(58,42,32,0.4)' }, ticks: { callback: v => v + 'M' }, min: 0.8 }
+    }
+  }
+});
+
+// ── Model comparison
+mkChart('chartModelComp', {
+  type: 'bar',
+  data: {
+    labels: ['OLS', 'Ridge', 'LASSO', 'k-NN'],
+    datasets: [{
+      data: [976, 965, 976, 810],
+      backgroundColor: ['rgba(201,168,76,.22)','rgba(201,168,76,.22)','rgba(201,168,76,.22)','rgba(201,168,76,.85)'],
+      borderColor: [GOLD,GOLD,GOLD,GOLD2], borderWidth: 1, borderRadius: 3,
+    }]
+  },
+  options: { responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` MAE: ${ctx.raw}K ₫` } }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: 'rgba(58,42,32,0.4)' }, ticks: { callback: v => v + 'K' }, min: 700 }
+    }
+  }
+});
+
+// ════════════════════════════════
+// PREDICTOR (k-NN simulation)
+// ════════════════════════════════
+const BRANDS_BASE = {
+  'Château Margaux': 8000000, 'Antinori': 3000000, 'Penfolds': 2500000,
+  'Robert Mondavi': 1800000, 'Torres': 1200000, 'Masi': 1500000,
+  'Cloudy Bay': 900000, 'Wolf Blass': 700000, 'Concha y Toro': 400000, 'Gallo': 350000,
+};
+
+function euclidean(a, b) {
+  return Math.sqrt(a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0));
+}
+
+function normalize(val, min, max) { return max === min ? 0 : (val - min) / (max - min); }
+
+const brandList = ['Château Margaux','Antinori','Penfolds','Robert Mondavi','Masi','Torres','Cloudy Bay','Wolf Blass','Concha y Toro','Gallo'];
+const grapeList = ['Cabernet Sauvignon','Merlot','Chardonnay','Sauvignon Blanc','Pinot Noir','Syrah','Malbec','Riesling','Grenache','Tempranillo'];
+const typeList  = ['Vang Đỏ','Vang Trắng','Vang Hồng','Vang Sủi'];
+const countryList = ['Pháp','Ý','Chile','Mỹ','Úc','Tây Ban Nha','Argentina','New Zealand'];
+
+function featureVec(r) {
+  return [
+    normalize(typeList.indexOf(r.wine_type), 0, typeList.length),
+    normalize(grapeList.indexOf(r.grape_variety), 0, grapeList.length),
+    normalize(countryList.indexOf(r.origin_country), 0, countryList.length),
+    normalize(brandList.indexOf(r.brand), 0, brandList.length),
+    normalize(r.vintage, 2010, 2023),
+    normalize(r.alcohol_pct || r.alcohol_content * 100, 10, 16),
+    normalize(r.volume, 375, 1500),
+    normalize(r.rating_score, 3.2, 5.0),
+  ];
+}
+
+function runPredict() {
+  const query = {
+    wine_type: document.getElementById('f-type').value,
+    brand: document.getElementById('f-brand').value,
+    grape_variety: document.getElementById('f-grape').value,
+    origin_country: document.getElementById('f-country').value,
+    vintage: +document.getElementById('f-vintage').value,
+    alcohol_pct: +document.getElementById('f-alcohol').value,
+    volume: +document.getElementById('f-volume').value,
+    rating_score: +document.getElementById('f-rating').value,
+  };
+
+  const qVec = featureVec(query);
+  const withDist = DATA.records.map(r => ({ r, d: euclidean(qVec, featureVec(r)) }));
+  withDist.sort((a, b) => a.d - b.d);
+  const k2 = withDist.slice(0, 2);
+  const predicted = k2.reduce((s, x) => s + x.r.price_vnd, 0) / k2.length;
+
+  // Animate
+  const priceEl = document.getElementById('result-price');
+  priceEl.classList.add('loading');
+  setTimeout(() => {
+    priceEl.classList.remove('loading');
+    priceEl.textContent = fmtVND(predicted);
+    document.getElementById('result-range').textContent =
+      `Khoảng: ${fmtVND(predicted * 0.8)} – ${fmtVND(predicted * 1.2)}`;
+    document.getElementById('result-model').textContent = '✦ k-NN · k=2 · MAE=810K ₫';
+
+    // Neighbors
+    const nb = document.getElementById('neighbors-list');
+    nb.innerHTML = k2.map(x => `
+      <div class="neighbor-item">
+        <span class="neighbor-name">${x.r.product_name}</span>
+        <span class="neighbor-price">${fmtVND(x.r.price_vnd)}</span>
+      </div>`).join('');
+
+    // Range breakdown
+    const ranges = [
+      { label: '<500K', min: 0, max: 500000 },
+      { label: '500K–1M', min: 500000, max: 1000000 },
+      { label: '1M–2M', min: 1000000, max: 2000000 },
+      { label: '>2M', min: 2000000, max: Infinity },
+    ];
+    const rb = document.getElementById('range-breakdown');
+    rb.innerHTML = ranges.map(r => {
+      const p = r.min <= predicted && predicted < r.max;
+      return `<div style="padding:.4rem .6rem;border:1px solid ${p ? 'rgba(201,168,76,.4)' : 'rgba(58,42,32,.4)'};font-family:'DM Mono',monospace;font-size:.68rem;color:${p ? '#e8c97a' : '#8a7a6e'};background:${p ? 'rgba(201,168,76,.06)' : 'transparent'}">${p ? '▶ ' : ''}${r.label}</div>`;
+    }).join('');
+  }, 700);
+}
+
+// ════════════════════════════════
+// DATA TABLE
+// ════════════════════════════════
+let page = 1;
+const PER_PAGE = 10;
+
+function getBadge(t) {
+  const map = { 'Vang Đỏ': 'red', 'Vang Trắng': 'white', 'Vang Hồng': 'rose', 'Vang Sủi': 'sparkling' };
+  return `<span class="wine-badge badge-${map[t] || 'red'}">${t}</span>`;
+}
+
+function renderTable() {
+  const q = document.getElementById('tbl-search').value.toLowerCase();
+  const typeF = document.getElementById('tbl-type').value;
+  const sort = document.getElementById('tbl-sort').value;
+
+  let rows = DATA.records.filter(r =>
+    (!typeF || r.wine_type === typeF) &&
+    (!q || [r.product_name, r.brand, r.origin_country, r.grape_variety].some(v => v.toLowerCase().includes(q)))
+  );
+
+  const [key, dir] = sort.split('_');
+  const keyMap = { price: 'price_vnd', rating: 'rating_score', vintage: 'vintage' };
+  rows.sort((a, b) => dir === 'desc' ? b[keyMap[key]] - a[keyMap[key]] : a[keyMap[key]] - b[keyMap[key]]);
+
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  if (page > totalPages) page = totalPages;
+  const slice = rows.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  document.getElementById('tbl-body').innerHTML = slice.map(r => `
+    <tr>
+      <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.product_name}</td>
+      <td>${getBadge(r.wine_type)}</td>
+      <td>${r.brand}</td>
+      <td>${r.origin_country}</td>
+      <td style="color:var(--muted)">${r.grape_variety}</td>
+      <td style="font-family:'DM Mono',monospace">${r.vintage}</td>
+      <td style="font-family:'DM Mono',monospace">${(r.alcohol_pct||0).toFixed(1)}%</td>
+      <td class="rating-cell" style="font-family:'DM Mono',monospace">★ ${r.rating_score?.toFixed(1) || '—'}</td>
+      <td class="price-cell">${fmtVND(r.price_vnd)}</td>
+    </tr>`).join('');
+
+  document.getElementById('tbl-info').textContent = `Hiển thị ${(page-1)*PER_PAGE+1}–${Math.min(page*PER_PAGE,total)} / ${total} kết quả`;
+
+  const pagesEl = document.getElementById('tbl-pages');
+  pagesEl.innerHTML = Array.from({length: Math.min(totalPages, 8)}, (_, i) => i + 1)
+    .map(p2 => `<button class="page-btn${p2===page?' active':''}" onclick="goPage(${p2})">${p2}</button>`).join('');
+}
+
+function goPage(p2) { page = p2; renderTable(); }
+
+renderTable();
+
+// ════════════════════════════════
+// SCROLL REVEAL
+// ════════════════════════════════
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
