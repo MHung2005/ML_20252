@@ -1,2 +1,4 @@
 data/*.csv
 outputs/*.csv
+
+__pycache__/**/*
