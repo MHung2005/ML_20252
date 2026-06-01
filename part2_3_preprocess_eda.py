@@ -1,11 +1,38 @@
 """
 PHẦN 2 & 3: TIỀN XỬ LÝ DỮ LIỆU + KHÁM PHÁ DỮ LIỆU (EDA)
 """
+
+from __future__ import annotations
+
+import os
+import sys
+import warnings
+
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import LabelEncoder, MinMaxScaler
-import os, warnings
+
+try:
+    from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+except ImportError as exc:
+    raise ImportError(
+        "Missing dependency: scikit-learn. Install it with: "
+        "python -m pip install scikit-learn"
+    ) from exc
+
 warnings.filterwarnings("ignore")
+
+
+def configure_output_encoding() -> None:
+    """Make Vietnamese console output work on Windows terminals."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+
+configure_output_encoding()
 
 PLOT_AVAILABLE = True
 try:
@@ -39,34 +66,62 @@ def load_raw(path: str = "data/raw_wines.csv") -> pd.DataFrame:
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     print("=== 2.1 LÀM SẠCH DỮ LIỆU ===")
 
+    if "price_vnd" not in df.columns:
+        raise ValueError("raw data must contain the target column: price_vnd")
+
+    defaults = {
+        "vintage": np.nan,
+        "brand": "Unknown",
+        "rating_score": np.nan,
+        "alcohol_content": np.nan,
+        "volume": np.nan,
+        "wine_type": "Unknown",
+        "grape_variety": "Unknown",
+        "origin_country": "Unknown",
+        "region": "Unknown",
+    }
+    for col, default in defaults.items():
+        if col not in df.columns:
+            df[col] = default
+
     # Loại bỏ dòng thiếu biến mục tiêu
     before = len(df)
     df = df.dropna(subset=["price_vnd"]).copy()
     print(f"  Xóa {before - len(df)} dòng thiếu price_vnd  → còn {len(df)}")
 
     # Loại bỏ giá âm hoặc bằng 0
+    df["price_vnd"] = pd.to_numeric(df["price_vnd"], errors="coerce")
     df = df[df["price_vnd"] > 0]
+    if df.empty:
+        raise ValueError("No valid rows remain after filtering price_vnd > 0")
 
     # Gán giá trị thiếu cho vintage bằng trung bình theo brand
+    df["brand"] = df["brand"].fillna("Unknown").astype(str)
     df["vintage"] = pd.to_numeric(df["vintage"], errors="coerce")
     df["vintage"] = df.groupby("brand")["vintage"].transform(
         lambda x: x.fillna(x.mean())
     )
-    df["vintage"] = df["vintage"].fillna(df["vintage"].mean()).round().astype(int)
+    vintage_mean = df["vintage"].mean()
+    df["vintage"] = df["vintage"].fillna(vintage_mean if pd.notna(vintage_mean) else 2018)
+    df["vintage"] = df["vintage"].round().astype(int)
 
     # Gán thiếu rating_score = trung bình theo brand, rồi toàn bộ
     df["rating_score"] = pd.to_numeric(df["rating_score"], errors="coerce")
     df["rating_score"] = df.groupby("brand")["rating_score"].transform(
         lambda x: x.fillna(x.mean())
     )
-    df["rating_score"] = df["rating_score"].fillna(df["rating_score"].mean())
+    rating_mean = df["rating_score"].mean()
+    df["rating_score"] = df["rating_score"].fillna(rating_mean if pd.notna(rating_mean) else 4.0)
 
     # Xử lý alcohol_content thiếu
     df["alcohol_content"] = pd.to_numeric(df["alcohol_content"], errors="coerce")
     # Nếu nhập dạng % (> 1), chuẩn về tỷ lệ
     mask_pct = df["alcohol_content"] > 1
     df.loc[mask_pct, "alcohol_content"] = df.loc[mask_pct, "alcohol_content"] / 100
-    df["alcohol_content"] = df["alcohol_content"].fillna(df["alcohol_content"].mean())
+    alcohol_mean = df["alcohol_content"].mean()
+    df["alcohol_content"] = df["alcohol_content"].fillna(
+        alcohol_mean if pd.notna(alcohol_mean) else 0.13
+    )
 
     # volume mặc định 750ml nếu thiếu
     df["volume"] = pd.to_numeric(df["volume"], errors="coerce")
@@ -100,7 +155,9 @@ def integrate_data(df: pd.DataFrame) -> pd.DataFrame:
 
 # ── 2.3  Chuyển đổi dữ liệu ────────────────────────────────────────────────
 
-def transform_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+def transform_data(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, LabelEncoder], MinMaxScaler]:
     print("\n=== 2.3 CHUYỂN ĐỔI DỮ LIỆU ===")
 
     # Rời rạc hóa alcohol_content → bins
@@ -108,6 +165,7 @@ def transform_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         df["alcohol_content"] * 100,
         bins=[0, 12, 13, 14, 100],
         labels=["Nhẹ(<12%)", "Trung bình(12-13%)", "Cao(13-14%)", "Rất cao(>14%)"],
+        include_lowest=True,
     )
     print(f"  alcohol_bin:\n{df['alcohol_bin'].value_counts()}")
 
@@ -250,6 +308,7 @@ def preprocess_and_eda(raw_csv: str = "data/raw_wines.csv"):
     eda(df_raw, df_raw_for_eda)
 
     # Lưu kết quả
+    os.makedirs("data", exist_ok=True)
     df_clean.to_csv("data/cleaned_wines.csv", index=False, encoding="utf-8-sig")
     df_final.to_csv("data/processed_wines.csv", index=False, encoding="utf-8-sig")
     print("\n✓ Lưu: data/cleaned_wines.csv  &  data/processed_wines.csv")

@@ -1,4 +1,6 @@
 data/*.csv
 outputs/*.csv
+outputs/*.png
+models/*.pkl
 
 __pycache__/**/*

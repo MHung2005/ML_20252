@@ -3,22 +3,46 @@ PHẦN 4 & 5: MÔ HÌNH HỌC MÁY + ĐÁNH GIÁ & LỰA CHỌN MÔ HÌNH
 Gồm: OLS, Ridge, LASSO, k-NN Regression
 Đánh giá: Hold-out + k-fold Cross-Validation, chỉ số MAE
 """
+
+from __future__ import annotations
+
+import os
+import sys
+import warnings
+
 import pandas as pd
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import seaborn as sns
-import os, warnings
 warnings.filterwarnings("ignore")
 
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.model_selection import train_test_split, KFold, cross_val_score
-from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-import joblib
+try:
+    from sklearn.linear_model import LinearRegression, Ridge, Lasso
+    from sklearn.neighbors import KNeighborsRegressor
+    from sklearn.model_selection import train_test_split, KFold, cross_val_score
+    from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+    import joblib
+except ImportError as exc:
+    raise ImportError(
+        "Missing ML dependency. Install required packages with: "
+        "python -m pip install scikit-learn joblib"
+    ) from exc
+
+
+def configure_output_encoding() -> None:
+    """Make Vietnamese console output work on Windows terminals."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+
+configure_output_encoding()
 
 os.makedirs("outputs", exist_ok=True)
 os.makedirs("models", exist_ok=True)
@@ -48,6 +72,9 @@ def load_processed(path: str = "data/processed_wines.csv") -> tuple:
 
 def split_data(X, y):
     """60% Train | 20% Validation | 20% Test"""
+    if len(X) < 10:
+        raise ValueError("Need at least 10 rows to split train/validation/test sets")
+
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=RANDOM_STATE
     )
@@ -89,7 +116,11 @@ def tune_lasso(X_train, y_train, X_val, y_val) -> float:
 
 
 def tune_knn(X_train, y_train, X_val, y_val) -> int:
-    ks = list(range(1, 21))
+    max_k = min(20, len(X_train))
+    if max_k < 1:
+        raise ValueError("Need at least 1 training row for k-NN tuning")
+
+    ks = list(range(1, max_k + 1))
     best_k, best_mae = None, float("inf")
     maes = []
     for k in ks:
@@ -133,6 +164,10 @@ def build_models(best_ridge_lam, best_lasso_lam, best_k) -> dict:
 
 def evaluate_with_cv(models: dict, X_train, y_train, k_fold: int = 5) -> pd.DataFrame:
     """k-fold Cross-Validation trên tập train."""
+    k_fold = min(k_fold, len(X_train))
+    if k_fold < 2:
+        raise ValueError("Need at least 2 training rows for cross-validation")
+
     print(f"\n=== 5.1 {k_fold}-fold Cross-Validation (Train) ===")
     kf = KFold(n_splits=k_fold, shuffle=True, random_state=RANDOM_STATE)
     rows = []
@@ -188,7 +223,9 @@ def plot_results(cv_df: pd.DataFrame, test_df: pd.DataFrame,
     bars = ax.bar(test_df["Model"], test_df["R2"], color=colors, edgecolor="white", linewidth=0.5)
     ax.set_title("R² trên tập Test")
     ax.set_ylabel("R²")
-    ax.set_ylim(0, 1.1)
+    r2_min = min(0, float(test_df["R2"].min())) - 0.1
+    r2_max = max(1, float(test_df["R2"].max())) + 0.1
+    ax.set_ylim(r2_min, r2_max)
     for bar, val in zip(bars, test_df["R2"]):
         ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.01,
                 f"{val:.3f}", ha="center", va="bottom", fontsize=9)
@@ -254,7 +291,6 @@ def train_and_evaluate(processed_csv: str = "data/processed_wines.csv"):
     X, y, feature_cols = load_processed(processed_csv)
 
     print("\n=== PHẦN 4: CHIA DỮ LIỆU ===")
-    X_train_full = np.concatenate
     X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)
     X_train_full = np.vstack([X_train, X_val])
     y_train_full = np.concatenate([y_train, y_val])

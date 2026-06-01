@@ -13,23 +13,60 @@ Các sửa đổi so với phiên bản cũ:
 - clean_alcohol: giữ nguyên % (không chia 100) vì site ghi "13% ABV"
 """
 
+from __future__ import annotations
+
 import re
 import time
 import random
 import os
+import sys
 import unicodedata
 
 import pandas as pd
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import (
-    TimeoutException,
-    NoSuchElementException,
-    WebDriverException,
-)
+
+
+def configure_output_encoding() -> None:
+    """Make Vietnamese console output work on Windows terminals."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+
+configure_output_encoding()
+
+try:
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.common.exceptions import (
+        TimeoutException,
+        NoSuchElementException,
+        WebDriverException,
+    )
+    SELENIUM_AVAILABLE = True
+    SELENIUM_IMPORT_ERROR: ImportError | None = None
+except ImportError as exc:
+    webdriver = None
+    Options = None
+    By = None
+    WebDriverWait = None
+    EC = None
+    SELENIUM_AVAILABLE = False
+    SELENIUM_IMPORT_ERROR = exc
+
+    class TimeoutException(Exception):
+        pass
+
+    class NoSuchElementException(Exception):
+        pass
+
+    class WebDriverException(Exception):
+        pass
 
 # ─── cấu hình ────────────────────────────────────────────────────────────────
 
@@ -53,7 +90,17 @@ IMPLICIT_WAIT     = 5
 
 # ─── khởi tạo driver ─────────────────────────────────────────────────────────
 
+def ensure_selenium_available() -> None:
+    if not SELENIUM_AVAILABLE:
+        raise RuntimeError(
+            "Selenium is required only for crawl mode. Install it with: "
+            "python -m pip install selenium"
+        ) from SELENIUM_IMPORT_ERROR
+
+
 def build_driver(headless: bool = True) -> webdriver.Chrome:
+    ensure_selenium_available()
+
     opts = Options()
     if headless:
         opts.add_argument("--headless=new")
@@ -412,6 +459,133 @@ def parse_product_detail(driver: webdriver.Chrome, url: str) -> dict | None:
     record["short_description"] = short_desc
 
     return record
+
+
+def generate_sample_data(
+    n: int = 200,
+    seed: int = 42,
+    output_path: str = "data/raw_wines.csv",
+) -> pd.DataFrame:
+    """Generate a deterministic sample dataset with the same schema as crawled data."""
+    rng = random.Random(seed)
+
+    wine_types = [
+        "Rượu Vang Đỏ",
+        "Rượu Vang Trắng",
+        "Rượu Vang Hồng",
+        "Rượu Vang Ngọt",
+        "Rượu Vang Sủi",
+        "Champagne",
+        "Rượu Vang Organic",
+        "Rượu Vang Không Cồn",
+    ]
+    grape_varieties = [
+        "Cabernet Sauvignon",
+        "Merlot",
+        "Pinot Noir",
+        "Chardonnay",
+        "Sauvignon Blanc",
+        "Syrah",
+        "Malbec",
+        "Riesling",
+    ]
+    countries = ["Pháp", "Ý", "Chile", "Mỹ", "Úc", "Tây Ban Nha", "Argentina"]
+    regions_by_country = {
+        "Pháp": ["Bordeaux", "Bourgogne", "Champagne", "Rhône"],
+        "Ý": ["Tuscany", "Piedmont", "Veneto"],
+        "Chile": ["Maipo Valley", "Colchagua Valley"],
+        "Mỹ": ["Napa Valley", "Sonoma"],
+        "Úc": ["Barossa Valley", "Margaret River"],
+        "Tây Ban Nha": ["Rioja", "Ribera Del Duero"],
+        "Argentina": ["Mendoza", "Salta"],
+    }
+    brands = [
+        "Chateau Demo",
+        "Domaine Sample",
+        "Casa Vista",
+        "Reserve Cellar",
+        "Estate Select",
+        "Grand Valley",
+    ]
+    type_price_factor = {
+        "Rượu Vang Đỏ": 1.05,
+        "Rượu Vang Trắng": 0.9,
+        "Rượu Vang Hồng": 0.85,
+        "Rượu Vang Ngọt": 0.95,
+        "Rượu Vang Sủi": 1.15,
+        "Champagne": 1.8,
+        "Rượu Vang Organic": 1.25,
+        "Rượu Vang Không Cồn": 0.7,
+    }
+    country_price_factor = {
+        "Pháp": 1.45,
+        "Ý": 1.25,
+        "Chile": 0.85,
+        "Mỹ": 1.2,
+        "Úc": 1.0,
+        "Tây Ban Nha": 0.95,
+        "Argentina": 0.8,
+    }
+
+    records = []
+    for idx in range(1, n + 1):
+        wine_type = rng.choice(wine_types)
+        country = rng.choice(countries)
+        region = rng.choice(regions_by_country[country])
+        grape = rng.choice(grape_varieties)
+        brand = rng.choice(brands)
+        vintage = rng.choice(list(range(2008, 2023)) + [None])
+        rating_score = round(rng.uniform(3.4, 4.9), 1)
+        rating_count = rng.randint(3, 160)
+        volume = rng.choices([375.0, 750.0, 1500.0], weights=[8, 85, 7], k=1)[0]
+
+        if wine_type == "Rượu Vang Không Cồn":
+            alcohol_content = round(rng.uniform(0.0, 0.5), 1)
+        else:
+            alcohol_content = round(rng.uniform(11.0, 15.5), 1)
+
+        vintage_factor = 1.0
+        if vintage:
+            vintage_factor += max(0, 2024 - vintage) * 0.018
+
+        price = (
+            420_000
+            * type_price_factor[wine_type]
+            * country_price_factor[country]
+            * (volume / 750.0) ** 0.85
+            * (0.85 + rating_score / 8)
+            * vintage_factor
+            * rng.uniform(0.75, 1.35)
+        )
+        price_vnd = int(round(max(price, 120_000), -3))
+        product_name = f"{brand} {grape} {vintage or 'NV'}"
+
+        records.append({
+            "url": f"{BASE_URL}/sample-wine-{idx:04d}",
+            "product_name": product_name,
+            "sku": f"SAMPLE-{idx:04d}",
+            "price_vnd": price_vnd,
+            "grape_variety": grape,
+            "wine_type": wine_type,
+            "brand": brand,
+            "origin_country": country,
+            "alcohol_content": alcohol_content,
+            "volume": volume,
+            "region": region,
+            "vintage": vintage,
+            "rating_score": rating_score,
+            "rating_count": rating_count,
+            "image_url": "",
+            "short_description": f"Dữ liệu mẫu cho {wine_type.lower()} từ {country}.",
+        })
+
+    df = pd.DataFrame(records)
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+    df.to_csv(output_path, index=False, encoding="utf-8-sig")
+    print(f"✓ Đã tạo {len(df)} bản ghi mẫu tại {output_path}")
+    return df
 
 
 # ─── main ─────────────────────────────────────────────────────────────────────
