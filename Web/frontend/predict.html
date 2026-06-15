@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&amp;family=Work+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed": "#191c1d",
+                      "on-secondary-fixed-variant": "#3d4759",
+                      "primary": "#570013",
+                      "surface-container-high": "#ebe7e7",
+                      "primary-fixed": "#ffdada",
+                      "on-tertiary-fixed-variant": "#454748",
+                      "primary-fixed-dim": "#ffb3b5",
+                      "on-secondary": "#ffffff",
+                      "surface-container-low": "#f6f3f2",
+                      "on-primary-fixed": "#40000b",
+                      "on-primary-container": "#ff828a",
+                      "on-secondary-fixed": "#121c2c",
+                      "surface-dim": "#dcd9d9",
+                      "outline": "#8c7071",
+                      "tertiary-fixed": "#e1e3e4",
+                      "on-tertiary-container": "#a7a9aa",
+                      "surface-container": "#f0edec",
+                      "on-surface": "#111111",
+                      "primary-container": "#800020",
+                      "inverse-surface": "#313030",
+                      "outline-variant": "#d1d5db",
+                      "tertiary": "#252829",
+                      "surface-bright": "#fcf9f8",
+                      "secondary": "#555f71",
+                      "surface-container-lowest": "#ffffff",
+                      "on-surface-variant": "#111111",
+                      "tertiary-fixed-dim": "#c5c7c8",
+                      "inverse-primary": "#ffb3b5",
+                      "surface-container-highest": "#e5e2e1",
+                      "secondary-fixed": "#d9e3f9",
+                      "surface-variant": "#e5e2e1",
+                      "background": "#fcf9f8",
+                      "surface-tint": "#af2b3e",
+                      "on-primary": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "on-tertiary": "#ffffff",
+                      "secondary-fixed-dim": "#bdc7dc",
+                      "on-background": "#1c1b1b",
+                      "on-secondary-container": "#596376",
+                      "error": "#ba1a1a",
+                      "on-error": "#ffffff",
+                      "surface": "#fcf9f8",
+                      "on-error-container": "#93000a",
+                      "secondary-container": "#d6e0f6",
+                      "inverse-on-surface": "#f3f0ef",
+                      "on-primary-fixed-variant": "#8e0f28",
+                      "tertiary-container": "#3b3e3f"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "margin-mobile": "20px",
+                      "stack-sm": "8px",
+                      "gutter": "24px",
+                      "margin-desktop": "64px",
+                      "stack-md": "16px",
+                      "unit": "8px",
+                      "stack-lg": "32px",
+                      "container-max-width": "1280px"
+              },
+              "fontFamily": {
+                      "body-md": ["Work Sans"],
+                      "label-sm": ["Work Sans"],
+                      "display-lg": ["Plus Jakarta Sans"],
+                      "headline-md": ["Plus Jakarta Sans"],
+                      "headline-lg": ["Plus Jakarta Sans"],
+                      "headline-lg-mobile": ["Plus Jakarta Sans"],
+                      "body-lg": ["Work Sans"],
+                      "label-lg": ["Work Sans"]
+              },
+              "fontSize": {
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { background-color: #fcf9f8; }
+        .data-card {
+            border: 1px solid #d1d5db;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .data-card:hover {
+            border-color: #800020;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        input, select, textarea {
+            background-color: white !important;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- TopAppBar -->
+<header class="sticky top-0 w-full z-50 flex justify-between items-center px-margin-mobile py-stack-sm bg-surface border-b border-outline-variant md:px-margin-desktop">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="monitoring">monitoring</span>
+<h1 class="text-headline-md-mobile font-headline-md text-primary tracking-tight md:text-headline-md">Nhóm 10</h1>
+</div>
+<div class="hidden md:flex gap-stack-lg items-center">
+<span class="text-primary font-bold cursor-pointer">Inference</span>
+</div>
+</header>
+<main class="max-w-container-max-width mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg pb-32">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Left: Inference Form (8 Columns on Desktop) -->
+<section class="lg:col-span-8 space-y-stack-lg">
+<div class="flex flex-col gap-2">
+<h2 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Dự đoán giá trị rượu vang</h2>
+<p class="text-body-md text-on-surface-variant opacity-70 max-w-2xl">Nhập các thông số kỹ thuật và đặc tính của rượu để hệ thống AI phân tích và đưa ra mức giá thị trường dự kiến chuẩn xác nhất.</p>
+</div>
+<form class="data-card bg-surface-container-lowest p-stack-lg rounded-lg space-y-stack-md" id="inference-form">
+<div class="space-y-stack-md">
+<!-- Wine Name -->
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-on-surface font-semibold">Tên rượu (Wine Name)</label>
+<input class="w-full p-stack-sm border border-outline-variant rounded focus:ring-1 focus:ring-primary focus:border-primary text-on-surface" id="field-ten" placeholder="e.g. Château Margaux" type="text"/>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+<!-- Grape Variety -->
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-on-surface font-semibold">Giống nho (Grape Variety)</label>
+<select class="w-full p-stack-sm border border-outline-variant rounded focus:ring-1 focus:ring-primary focus:border-primary text-on-surface" id="field-giong-nho">
+<option>Blend</option>
+<option>Bordeaux Blend</option>
+<option>Pinot Noir</option>
+<option>Chardonnay</option>
+<option>Nebbiolo</option>
+<option>Sangiovese</option>
+<option>Cabernet Sauvignon</option>
+<option>Merlot</option>
+<option>Syrah</option>
+</select>
+</div>
+<!-- Producer -->
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-on-surface font-semibold">Nhà sản xuất (Producer)</label>
+<div class="relative">
+<input class="w-full p-stack-sm border border-outline-variant rounded focus:ring-1 focus:ring-primary focus:border-primary text-on-surface" id="field-nha-san-xuat" placeholder="Tìm kiếm nhà sản xuất..." type="text"/>
+<span class="material-symbols-outlined absolute right-2 top-2 text-on-surface-variant opacity-50" data-icon="search">search</span>
+</div>
+</div>
+<!-- Country -->
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-on-surface font-semibold">Quốc gia (Country)</label>
+<select class="w-full p-stack-sm border border-outline-variant rounded focus:ring-1 focus:ring-primary focus:border-primary text-on-surface" id="field-quoc-gia">
+<option>France</option>
+<option>Italy</option>
+<option>Spain</option>
+<option>USA</option>
+<option>Australia</option>
+<option>Chile</option>
+<option>Argentina</option>
+<option>Germany</option>
+<option>Portugal</option>
+<option>South Africa</option>
+<option>New Zealand</option>
+</select>
+</div>
+<!-- Bottle Size -->
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-on-surface font-semibold">Dung tích (Bottle Size)</label>
+<select class="w-full p-stack-sm border border-outline-variant rounded focus:ring-1 focus:ring-primary focus:border-primary text-on-surface" id="field-dung-tich">
+<option>750ml</option>
+<option>375ml</option>
+<option>500ml</option>
+<option>1500ml (Magnum)</option>
+<option>3000ml (Double Magnum)</option>
+</select>
+</div>
+</div>
+<!-- ABV Slider -->
+<!-- <div class="flex flex-col gap-2 pt-2">
+<div class="flex justify-between items-center">
+<label class="font-label-sm text-label-sm text-on-surface font-semibold">Độ cồn (ABV %)</label>
+<span class="text-primary font-bold bg-primary/5 px-2 py-0.5 rounded border border-primary/20" id="abv-display">13.5%</span>
+</div>
+<input class="w-full accent-primary-container h-2 bg-surface-container-high rounded-lg appearance-none cursor-pointer" id="field-nong-do" max="20.0" min="0.0" oninput="document.getElementById('abv-display').innerText = this.value + '%'" step="0.1" type="range" value="13.5"/>
+<div class="flex justify-between text-[10px] text-on-surface-variant font-medium">
+<span>0.0%</span>
+<span>10.0%</span>
+<span>20.0%</span>
+</div> 
+</div> -->
+<div class="flex flex-col gap-2 pt-2">
+  <div class="flex justify-between items-center">
+    <label class="font-label-sm text-label-sm text-on-surface font-semibold">Độ cồn (ABV %)</label>
+    <span class="text-[#720e24] font-bold bg-[#720e24]/5 px-2 py-0.5 rounded border border-[#720e24]/20" id="abv-display">14.3%</span>
+  </div>
+
+  <input class="w-full appearance-none cursor-pointer bg-transparent h-5
+                accent-[#720e24]
+                [&::-webkit-slider-runnable-track]:rounded-lg 
+                [&::-webkit-slider-runnable-track]:bg-gray-200 
+                [&::-webkit-slider-runnable-track]:h-2
+                [&::-webkit-slider-thumb]:appearance-none
+                [&::-webkit-slider-thumb]:h-5
+                [&::-webkit-slider-thumb]:w-5
+                [&::-webkit-slider-thumb]:rounded-full
+                [&::-webkit-slider-thumb]:bg-[#720e24]
+                [&::-webkit-slider-thumb]:relative
+                [&::-webkit-slider-thumb]:z-10
+                [&::-webkit-slider-thumb]:top-1/2
+                [&::-webkit-slider-thumb]:-translate-y-1/2
+                [&::-moz-range-track]:rounded-lg 
+                [&::-moz-range-track]:bg-gray-200 
+                [&::-moz-range-track]:h-2
+                [&::-moz-range-thumb]:appearance-none
+                [&::-moz-range-thumb]:h-5
+                [&::-moz-range-thumb]:w-5
+                [&::-moz-range-thumb]:rounded-full
+                [&::-moz-range-thumb]:bg-[#720e24]
+                [&::-moz-range-thumb]:border-none" 
+         id="field-nong-do" max="20.0" min="0.0" step="0.1" type="range" value="14.3"
+         oninput="document.getElementById('abv-display').innerText = this.value + '%'"/>
+
+  <div class="flex justify-between text-[10px] text-on-surface-variant font-medium">
+    <span>0.0%</span>
+    <span>10.0%</span>
+    <span>20.0%</span>
+  </div> 
+</div>
+
+
+
+<!-- Wine Type Radio -->
+<div class="flex flex-col gap-2 pt-2">
+<label class="font-label-sm text-label-sm text-on-surface font-semibold">Loại rượu (Wine Type)</label>
+<div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+<label class="flex items-center justify-center gap-1.5 p-2 border border-outline-variant rounded cursor-pointer hover:border-primary transition-colors bg-white">
+<input checked="" class="text-primary focus:ring-primary h-3 w-3" name="wine-type" type="radio" value="red"/>
+<span class="text-[11px] font-semibold text-on-surface">Red</span>
+</label>
+<label class="flex items-center justify-center gap-1.5 p-2 border border-outline-variant rounded cursor-pointer hover:border-primary transition-colors bg-white">
+<input class="text-primary focus:ring-primary h-3 w-3" name="wine-type" type="radio" value="white"/>
+<span class="text-[11px] font-semibold text-on-surface">White</span>
+</label>
+<label class="flex items-center justify-center gap-1.5 p-2 border border-outline-variant rounded cursor-pointer hover:border-primary transition-colors bg-white">
+<input class="text-primary focus:ring-primary h-3 w-3" name="wine-type" type="radio" value="sparkling"/>
+<span class="text-[11px] font-semibold text-on-surface">Sparkling</span>
+</label>
+<label class="flex items-center justify-center gap-1.5 p-2 border border-outline-variant rounded cursor-pointer hover:border-primary transition-colors bg-white">
+<input class="text-primary focus:ring-primary h-3 w-3" name="wine-type" type="radio" value="rose"/>
+<span class="text-[11px] font-semibold text-on-surface">Rosé</span>
+</label>
+<label class="flex items-center justify-center gap-1.5 p-2 border border-outline-variant rounded cursor-pointer hover:border-primary transition-colors bg-white">
+<input class="text-primary focus:ring-primary h-3 w-3" name="wine-type" type="radio" value="sweet"/>
+<span class="text-[11px] font-semibold text-on-surface">Sweet</span>
+</label>
+<label class="flex items-center justify-center gap-1.5 p-2 border border-outline-variant rounded cursor-pointer hover:border-primary transition-colors bg-white">
+<input class="text-primary focus:ring-primary h-3 w-3" name="wine-type" type="radio" value="fortified"/>
+<span class="text-[11px] font-semibold text-on-surface">Fortified</span>
+</label>
+</div>
+</div>
+</div>
+<div class="pt-stack-md border-t border-outline-variant">
+<button class="w-full md:w-auto bg-[#800020] text-white font-label-lg text-label-lg px-12 py-4 rounded shadow-sm active:scale-95 transition-transform hover:brightness-110 tracking-widest uppercase" onclick="triggerInference()" type="button">
+                            DỰ ĐOÁN GIÁ NGAY
+                        </button>
+</div>
+</form>
+<!-- History Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+<div class="data-card bg-surface-container-low p-stack-md rounded-lg">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-on-surface" data-icon="history">history</span>
+<h3 class="font-label-lg text-label-lg text-on-surface uppercase tracking-widest font-bold">Lịch sử dự đoán</h3>
+</div>
+<ul class="space-y-2">
+<li class="flex justify-between text-body-md border-b border-outline-variant/30 pb-1 text-on-surface">
+<span>Château Margaux 2015</span>
+<span class="font-bold text-primary">31.250.000 VNĐ</span>
+</li>
+<li class="flex justify-between text-body-md border-b border-outline-variant/30 pb-1 text-on-surface">
+<span>Sassicaia 2018</span>
+<span class="font-bold text-primary">8.500.000 VNĐ</span>
+</li>
+</ul>
+</div>
+<div class="relative rounded-lg overflow-hidden h-32 md:h-full">
+<img alt="Wine Cellar" class="w-full h-full object-cover" data-alt="A sophisticated and atmospheric underground wine cellar with rows of wooden barrels stored in a dim, temperature-controlled environment. The lighting is low-key and dramatic, highlighting the textures of the aged wood and brick walls. The overall mood is prestigious and traditional, reflecting the deep heritage of wine production and investment quality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFnVdU0voDlFe2BWM-xyRpQtGKP7pXSpCXaEyY-xlQgSxEhrJInBswReiF6EpuLmD5xAZ1A2JilriHKN1wkg6HzXvNgZUes9nTQa34ziXN3dKXY8QxQT0vPeDmorPNaQoNK6cLCN6Fd5ucBD1tBUqSZGS6RW9Hv_Ip5IpF1JjgJPrdyiLUrf9CXIZe50EYlIBdji1wbQoxxEBAmd_nZNSP-fFkF3sSK9Mucu8pNqhcfYrNf4OKSxmAktxkZhy-9834EOUlkQZ3QZ4"/>
+<div class="absolute inset-0 bg-primary/20 flex items-center justify-center">
+<span class="text-white font-headline-md backdrop-blur-sm px-4 py-2 border border-white/30 rounded uppercase tracking-widest text-xs">Premium Assets</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Right: Result Area (4 Columns on Desktop) -->
+<aside class="lg:col-span-4 space-y-stack-md">
+<div class="data-card bg-surface-container-lowest p-stack-lg rounded-lg flex flex-col items-center justify-center text-center min-h-[400px] border-2 border-dashed border-outline-variant" id="result-placeholder">
+<span class="material-symbols-outlined text-outline-variant text-6xl mb-4" data-icon="query_stats">query_stats</span>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Sẵn sàng phân tích</h3>
+<p class="text-body-md text-on-surface-variant opacity-70 px-4">Hãy điền thông số vào biểu mẫu và nhấn nút Dự đoán để bắt đầu phân tích dữ liệu thị trường.</p>
+</div>
+<div class="hidden data-card bg-surface-container-lowest p-stack-lg rounded-lg border-4 border-primary-container min-h-[400px] animate-in fade-in duration-500 shadow-xl" id="result-display">
+<div class="text-center mb-8">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-[0.2em] font-bold">Giá dự kiến tối ưu</span>
+<div class="mt-4">
+<h2 class="text-[36px] md:text-[40px] leading-tight text-black font-black tracking-tight" id="predicted-value">3.327.500 VNĐ</h2>
+</div>
+<div class="inline-flex mt-4 bg-green-100 text-green-800 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider" id="volatility-badge">
+                            +4.5% VOLATILITY
+                        </div>
+</div>
+<div class="space-y-stack-md">
+<div class="h-3 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-3/4 shadow-[0_0_10px_rgba(128,0,32,0.3)]" id="confidence-bar"></div>
+</div>
+<div class="flex justify-between text-[11px] text-on-surface font-bold uppercase tracking-tight">
+<span id="price-low">Thấp: 2.800.000 VNĐ</span>
+<span id="price-high">Cao: 3.850.000 VNĐ</span>
+</div>
+<div class="pt-6 border-t border-outline-variant">
+<h4 class="font-label-lg text-label-lg mb-3 text-on-surface font-black uppercase tracking-widest">Yếu tố ảnh hưởng:</h4>
+<div class="space-y-3" id="factors-list">
+<div class="flex items-center gap-3 text-body-md text-on-surface">
+<span class="material-symbols-outlined text-green-600 font-bold" data-icon="trending_up">trending_up</span>
+<span class="text-sm font-medium">Thị trường nội địa đang tăng cầu</span>
+</div>
+<div class="flex items-center gap-3 text-body-md text-on-surface">
+<span class="material-symbols-outlined text-primary font-bold" data-icon="verified">verified</span>
+<span class="text-sm font-medium">Sản lượng Vintage 2018 hạn chế</span>
+</div>
+</div>
+</div>
+<button class="w-full border-2 border-primary text-primary font-black text-label-lg py-4 rounded hover:bg-primary hover:text-white transition-all mt-6 uppercase tracking-widest">
+                            XUẤT BÁO CÁO PDF
+                        </button>
+</div>
+</div>
+<div class="data-card bg-primary-container text-white p-stack-md rounded-lg shadow-lg">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-label-lg text-label-lg font-black uppercase tracking-widest">Thuật toán KNN</span>
+</div>
+<p class="text-[11px] opacity-90 leading-relaxed font-medium" id="model-confidence-text">Được huấn luyên trên 1580 điểm dữ liệu thị trường rượu vang ở website winecellar.vn cập nhật theo thời gian thực.</p>
+</div>
+</aside>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center bg-surface px-2 pb-4 pt-2 border-t border-outline-variant shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+<a class="flex flex-col items-center justify-center text-primary border-t-4 border-primary pt-1 flex-1 h-14" href="#">
+<span class="material-symbols-outlined" data-icon="query_stats" style="font-variation-settings: 'FILL' 1;">query_stats</span>
+<span class="text-[10px] font-black uppercase tracking-tighter mt-1">Inference</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-50 pt-1 flex-1 h-14 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="text-[10px] font-black uppercase tracking-tighter mt-1">Insights</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-50 pt-1 flex-1 h-14 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+<span class="text-[10px] font-black uppercase tracking-tighter mt-1">Pipeline</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-50 pt-1 flex-1 h-14 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+<span class="text-[10px] font-black uppercase tracking-tighter mt-1">Model</span>
+</a>
+</nav>
+
+<script>
+        // ── Cấu hình ────────────────────────────────────────────────────────
+        const API_BASE = 'http://localhost:8000';  // ← Đổi thành URL server thực tế
+
+        // ── Lịch sử dự đoán ─────────────────────────────────────────────────
+        const history = [];
+
+        function formatVND(n) {
+            return Math.round(n).toLocaleString('vi-VN') + ' VNĐ';
+        }
+
+        function updateHistory(name, price) {
+            history.unshift({ name: name || 'Không rõ tên', price });
+            const ul = document.querySelector('#inference-form ~ div ul');
+            if (!ul) return;
+            ul.innerHTML = history.slice(0, 5).map(h => `
+                <li class="flex justify-between text-body-md border-b border-outline-variant/30 pb-1 text-on-surface">
+                    <span>${h.name}</span>
+                    <span class="font-bold text-primary">${formatVND(h.price)}</span>
+                </li>
+            `).join('');
+        }
+
+        function showError(msg) {
+            const placeholder = document.getElementById('result-placeholder');
+            const display = document.getElementById('result-display');
+            placeholder.innerHTML = `
+                <span class="material-symbols-outlined text-error text-6xl mb-4">error</span>
+                <h3 class="font-headline-md text-headline-md text-error mb-2">Lỗi kết nối API</h3>
+                <p class="text-body-md text-on-surface-variant opacity-70 px-4 text-sm">${msg}</p>
+                <p class="text-[11px] text-on-surface-variant opacity-50 mt-3 px-4">
+                    Đảm bảo backend đang chạy tại <code>${API_BASE}</code>
+                </p>
+            `;
+            placeholder.classList.remove('hidden');
+            display.classList.add('hidden');
+        }
+
+        async function triggerInference() {
+            const button = event.target;
+            const placeholder = document.getElementById('result-placeholder');
+            const display = document.getElementById('result-display');
+
+            // ── Thu thập giá trị form ────────────────────────────────────────
+            const ten          = document.getElementById('field-ten')?.value?.trim() || '';
+            const giong_nho    = document.getElementById('field-giong-nho')?.value || 'Blend';
+            const nha_san_xuat = document.getElementById('field-nha-san-xuat')?.value?.trim() || '';
+            const quoc_gia     = document.getElementById('field-quoc-gia')?.value || 'France';
+            const dung_tich    = document.getElementById('field-dung-tich')?.value || '750ml';
+            const nong_do      = parseFloat(document.getElementById('field-nong-do')?.value || '13.5');
+            const loai_ruou    = document.querySelector('input[name="wine-type"]:checked')?.value || 'red';
+
+            // Map FE value → tên danh mục tiếng Việt
+            const loaiMap = {
+                red: 'Rượu Vang Đỏ', white: 'Rượu Vang Trắng',
+                sparkling: 'Rượu Vang Sủi', rose: 'Rượu Vang Hồng',
+                sweet: 'Rượu Vang Ngọt', fortified: 'Rượu Vang Cường Hóa',
+            };
+
+            const payload = {
+                ten:           ten || null,
+                giong_nho,
+                nha_san_xuat:  nha_san_xuat || null,
+                quoc_gia,
+                nong_do,
+                dung_tich,
+                loai_ruou:     loaiMap[loai_ruou] || loai_ruou,
+            };
+
+            // ── Loading state ────────────────────────────────────────────────
+            const originalText = button.innerText;
+            button.innerText = 'ĐANG PHÂN TÍCH...';
+            button.disabled = true;
+            placeholder.innerHTML = `
+                <span class="material-symbols-outlined text-primary text-6xl mb-4 animate-spin" style="animation: spin 1s linear infinite;">autorenew</span>
+                <h3 class="font-headline-md text-headline-md text-on-surface mb-2">Đang phân tích...</h3>
+                <p class="text-body-md text-on-surface-variant opacity-70 px-4">Mô hình KNN đang tính toán dự đoán</p>
+            `;
+            placeholder.classList.remove('hidden');
+            display.classList.add('hidden');
+
+            // ── Gọi API ──────────────────────────────────────────────────────
+            try {
+                const response = await fetch(`${API_BASE}/predict`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.detail || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // ── Hiển thị kết quả ─────────────────────────────────────────
+                document.getElementById('predicted-value').innerText = formatVND(data.gia_du_doan);
+                document.getElementById('price-low').innerText  = 'Thấp: ' + formatVND(data.gia_thap);
+                document.getElementById('price-high').innerText = 'Cao: '  + formatVND(data.gia_cao);
+
+                // Progress bar dựa trên R² (0.60 → 60%)
+                const confBar = document.getElementById('confidence-bar');
+                if (confBar) confBar.style.width = data.do_tin_cay + '%';
+
+                // Badge tin cậy
+                const badgeEl = document.getElementById('volatility-badge');
+                if (badgeEl) badgeEl.innerText = `R² = ${data.do_tin_cay}% (KNN)`;
+
+                // Panel tin cậy bên phải
+                const confText = document.getElementById('model-confidence-text');
+                if (confText) {
+                    confText.innerText = `Mô hình: KNN | R² = ${data.do_tin_cay}% dựa trên dữ liệu winecellar.vn. `
+                        + `Sai số trung bình ~2.5 triệu VNĐ.`;
+                }
+
+                // Yếu tố ảnh hưởng
+                const factors = document.getElementById('factors-list');
+                if (factors) {
+                    const feats = data.features_used || {};
+                    const items = [
+                        feats.nam_trich   ? `<span class="material-symbols-outlined text-green-600">calendar_month</span><span class="text-sm font-medium">Năm sản xuất: ${feats.nam_trich} (tuổi: ${new Date().getFullYear() - feats.nam_trich} năm)</span>` : null,
+                        feats.hang_ruou && feats.hang_ruou !== 'Unknown'
+                            ? `<span class="material-symbols-outlined text-primary">verified</span><span class="text-sm font-medium">Hạng/Appellation: ${feats.hang_ruou}</span>` : null,
+                        `<span class="material-symbols-outlined text-blue-600">wine_bar</span><span class="text-sm font-medium">Giống nho: ${feats.giong_nho || giong_nho}</span>`,
+                        `<span class="material-symbols-outlined text-amber-600">factory</span><span class="text-sm font-medium">Nhà SX: ${feats.nha_san_xuat || '—'} | ${feats.quoc_gia || quoc_gia}</span>`,
+                    ].filter(Boolean);
+                    factors.innerHTML = items.map(i => `<div class="flex items-center gap-3 text-body-md text-on-surface">${i}</div>`).join('');
+                }
+
+                placeholder.classList.add('hidden');
+                display.classList.remove('hidden');
+
+                // Scroll to result on mobile
+                if (window.innerWidth < 1024) {
+                    display.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                // Cập nhật lịch sử
+                updateHistory(ten || giong_nho, data.gia_du_doan);
+
+            } catch (err) {
+                showError(err.message || 'Không thể kết nối tới API');
+            } finally {
+                button.innerText = originalText;
+                button.disabled = false;
+            }
+        }
+
+        // Spin keyframe (nếu chưa có)
+        if (!document.getElementById('spin-style')) {
+            const st = document.createElement('style');
+            st.id = 'spin-style';
+            st.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+            document.head.appendChild(st);
+        }
+    </script></body></html>
