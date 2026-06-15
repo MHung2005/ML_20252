@@ -1,9 +1,9 @@
 """
 Wine Price Prediction API — FastAPI Backend
 ===========================================
-• POST /predict   → nhận form data, tiền xử lý, trả về giá dự đoán
-• GET  /health    → kiểm tra server + model sẵn sàng
-• GET  /meta      → trả về danh sách giống nho, quốc gia… để FE dùng
+- POST /predict   → nhận form data, tiền xử lý, trả về giá dự đoán
+- GET  /health    → kiểm tra server + model sẵn sàng
+- GET  /meta      → trả về danh sách giống nho, quốc gia… để FE dùng
 """
 
 import re
@@ -17,14 +17,14 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 
 # ─── Khởi tạo app ────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="Vitis Analytics API",
-    description="Wine price prediction using KNN model trained on winecellar.vn data",
-    version="1.0.0",
+    description="Wine price prediction using KNN/Random Forest models trained on winecellar.vn data",
+    version="1.1.0",
 )
 
 app.add_middleware(
@@ -34,30 +34,64 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── Load model ──────────────────────────────────────────────────────────────
+# ─── Load models ─────────────────────────────────────────────────────────────
 
-MODEL_PATH = Path(__file__).parent / "model.pkl"
-model_pipeline = None
+BASE_DIR = Path(__file__).parent
 
-def load_model():
-    global model_pipeline
-    if not MODEL_PATH.exists():
-        print(f"[WARN] {MODEL_PATH} không tồn tại — API /predict sẽ trả lỗi 503.")
-        return
+MODEL_PATHS = {
+    "knn":           BASE_DIR / "knn_model.pkl",
+    "random_forest": BASE_DIR / "random_forest_model.pkl",
+}
+
+# RMSE ước tính riêng cho mỗi model — chỉnh lại theo số đo thật của bạn
+MODEL_RMSE = {
+    "knn":           2_538_079.0,
+    "random_forest": 2_566_902.0,
+}
+
+# R² ước tính riêng cho mỗi model — chỉnh lại theo số đo thật của bạn
+MODEL_R2 = {
+    "knn":           59.35,
+    "random_forest": 58.47,
+}
+
+MODEL_DISPLAY_NAME = {
+    "knn":           "KNN",
+    "random_forest": "Random Forest",
+}
+
+models: dict = {"knn": None, "random_forest": None}
+
+DEFAULT_MODEL = "knn"
+
+
+def _load_one(key: str, path: Path):
+    if not path.exists():
+        print(f"[WARN] {path} không tồn tại — model '{key}' sẽ không khả dụng.")
+        return None
     try:
-        # Hỗ trợ cả joblib lẫn pickle
         try:
-            model_pipeline = joblib.load(MODEL_PATH)
+            obj = joblib.load(path)
         except Exception:
-            with open(MODEL_PATH, "rb") as f:
-                model_pipeline = pickle.load(f)
-        print(f"[OK] Đã load model từ {MODEL_PATH}")
+            with open(path, "rb") as f:
+                obj = pickle.load(f)
+        print(f"[OK] Đã load model '{key}' từ {path}")
+        return obj
     except Exception as e:
-        print(f"[ERROR] Không load được model: {e}")
+        print(f"[ERROR] Không load được model '{key}': {e}")
+        return None
 
-load_model()
+
+def load_models():
+    for key, path in MODEL_PATHS.items():
+        models[key] = _load_one(key, path)
+
+
+load_models()
 
 # ─── Schema ──────────────────────────────────────────────────────────────────
+
+ModelName = Literal["knn", "random_forest"]
 
 class WineInput(BaseModel):
     ten:           Optional[str]   = Field(None,   description="Tên rượu (để trích xuất năm sản xuất)")
@@ -67,12 +101,14 @@ class WineInput(BaseModel):
     nong_do:       Optional[float] = Field(13.5,   description="Độ cồn (%)")
     dung_tich:     Optional[str]   = Field("750ml", description="Dung tích (e.g. '750ml', '1500ml')")
     loai_ruou:     Optional[str]   = Field("Rượu Vang Đỏ", description="Loại rượu (danh mục web)")
+    model:         Optional[ModelName] = Field("knn", description="Model dùng để dự đoán: 'knn' hoặc 'random_forest'")
 
 class PredictResponse(BaseModel):
     gia_du_doan:   float   = Field(..., description="Giá dự đoán (VNĐ)")
     gia_thap:      float   = Field(..., description="Giá thấp ước tính (VNĐ)")
     gia_cao:       float   = Field(..., description="Giá cao ước tính (VNĐ)")
     do_tin_cay:    float   = Field(..., description="Điểm tin cậy giả định (0-100)")
+    model_used:    str     = Field(..., description="Model đã dùng để dự đoán")
     features_used: dict    = Field(..., description="Các đặc trưng đã dùng để predict")
 
 # ─── Hàm tiền xử lý (mirror hoàn toàn notebook Preprocessing) ────────────────
@@ -230,8 +266,11 @@ def build_ohe_row(inp: WineInput) -> pd.DataFrame:
 def health():
     return {
         "status": "ok",
-        "model_loaded": model_pipeline is not None,
-        "model_path": str(MODEL_PATH),
+        "models_loaded": {
+            key: (m is not None) for key, m in models.items()
+        },
+        "model_paths": {key: str(path) for key, path in MODEL_PATHS.items()},
+        "default_model": DEFAULT_MODEL,
     }
 
 
@@ -256,17 +295,28 @@ def meta():
             "Rượu Vang Cường Hóa", "Rượu Vang Không Cồn", "Rượu Vang Organic",
         ],
         "dung_tich": ["375ml", "500ml", "750ml", "1500ml", "3000ml"],
+        "models": [
+            {"id": "knn", "label": "KNN", "available": models["knn"] is not None},
+            {"id": "random_forest", "label": "Random Forest", "available": models["random_forest"] is not None},
+        ],
+        "default_model": DEFAULT_MODEL,
     }
 
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(inp: WineInput):
+    model_key = inp.model or DEFAULT_MODEL
+    if model_key not in models:
+        raise HTTPException(status_code=400, detail=f"Model không hợp lệ: '{model_key}'. Chọn 'knn' hoặc 'random_forest'.")
+
+    model_pipeline = models.get(model_key)
+
     if model_pipeline is None:
         raise HTTPException(
             status_code=503,
             detail=(
-                "Model chưa được load. "
-                "Hãy đặt file model.pkl vào cùng thư mục với app.py và khởi động lại server."
+                f"Model '{model_key}' chưa được load. "
+                f"Hãy đặt file {MODEL_PATHS[model_key].name} vào cùng thư mục với app.py và khởi động lại server."
             ),
         )
 
@@ -288,25 +338,26 @@ def predict(inp: WineInput):
         except Exception as e_ohe:
             raise HTTPException(
                 status_code=422,
-                detail=f"Lỗi khi dự đoán: pipeline={e_pipe} | ohe={e_ohe}",
+                detail=f"Lỗi khi dự đoán ({model_key}): pipeline={e_pipe} | ohe={e_ohe}",
             )
 
     # ── Chuyển ngược log-transform → VNĐ ──
     gia_pred = float(np.expm1(log_pred))
 
-    # ── Khoảng tin cậy ~±1 RMSE (KNN RMSE ≈ 2.51 triệu) ──
-    RMSE_EST = 2_538_079.0
-    gia_thap = max(0.0, gia_pred - RMSE_EST)
-    gia_cao  = gia_pred + RMSE_EST
+    # ── Khoảng tin cậy ~±1 RMSE theo từng model ──
+    rmse_est = MODEL_RMSE.get(model_key, 2_538_079.0)
+    gia_thap = max(0.0, gia_pred - rmse_est)
+    gia_cao  = gia_pred + rmse_est
 
-    # ── Điểm tin cậy (giả định dựa trên R² của KNN = 0.60) ──
-    do_tin_cay = round(59.35, 2)   # placeholder; có thể tính động nếu có ensemble
+    # ── Điểm tin cậy (giả định dựa trên R² của từng model) ──
+    do_tin_cay = round(MODEL_R2.get(model_key, 59.35), 2)
 
     return PredictResponse(
         gia_du_doan=round(gia_pred),
         gia_thap=round(gia_thap),
         gia_cao=round(gia_cao),
         do_tin_cay=do_tin_cay,
+        model_used=MODEL_DISPLAY_NAME.get(model_key, model_key),
         features_used={
             "giong_nho":    inp.giong_nho,
             "nha_san_xuat": inp.nha_san_xuat,
